@@ -96,3 +96,4 @@ aws cloudformation delete-stack --stack-name <value>
 
 ![document](./img/s3-vpn.PNG)
 
+※cloudFormationではS3のGatewayエンドポイントが作成できなさそうなので、手動で作成して、gwにアタッチすること
