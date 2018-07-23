@@ -19,10 +19,14 @@ aws s3 cp ./genomon-vpc.yaml s3://<your bucket>
 Create AWS Virtual Private Cloud (VPC).
 
 ```Bash
-aws cloudformation create-stack --stack-name <stack name> --template-url https://s3-<region>.amazonaws.com/<your bucket>/genomon-vpc.yaml
+aws cloudformation create-stack \
+  --stack-name <stack name> \
+  --template-url https://s3-<region>.amazonaws.com/<your bucket>/genomon-vpc.yaml
 
 ## for example,
-aws cloudformation create-stack --stack-name genomon-test --template-url https://s3-ap-southeast-1.amazonaws.com/ecsub-singapore/genomon-vpc.yaml
+aws cloudformation create-stack \
+  --stack-name genomon-test \
+  --template-url https://s3-ap-southeast-1.amazonaws.com/ecsub-singapore/genomon-vpc.yaml
 
 --stack-name (string)
    The  name that is associated with the stack. The name must be unique
@@ -48,23 +52,30 @@ Wait...
 ```Bash
 aws cloudformation describe-stacks --stack-name <stack name> | grep StackStatus
 
-            "StackStatus": "CREATE_IN_PROGRESS",  ## 途中
-            "StackStatus": "CREATE_COMPLETE",     ## 成功
-            "StackStatus": <other>,               ## 失敗
+    "StackStatus": "CREATE_IN_PROGRESS",  ## 途中
+    "StackStatus": "CREATE_COMPLETE",     ## 成功
+    "StackStatus": <other>,               ## 失敗
 ```
 
-Get subnet-ID.
+Get SecurityGroup and private-subnet-ID.
 
 ```Bash
 aws cloudformation describe-stacks --stack-name <stack name> | jq -r ".Stacks[0].Outputs"
 [
 ...
   {
+    "Description": "Security group for the jobs",
+    "OutputKey": "PrivateSecurityGroup",
+    "OutputValue": "sg-6ca00714"
+  },
+...
+  {
     "Description": "Private subnet in the VPC",
     "OutputKey": "PrivateSubnetId",
-    "OutputValue": "subnet-ghijkl34"
+    "OutputValue": "subnet-fc7d7f9b"
   }
 ]
+
 ```
 
 Delete VPC.
@@ -79,4 +90,9 @@ aws cloudformation delete-stack --stack-name <value>
  - Genomon Cloud (genomon-vpc.yaml)
 
 ![document](./img/genomon-cloud.PNG)
+
+
+ - S3-VPN (s3-vpn.yaml) (under development...)
+
+![document](./img/s3-vpn.PNG)
 
