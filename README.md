@@ -53,26 +53,12 @@ aws cloudformation describe-stacks --stack-name <stack name> | grep StackStatus
             "StackStatus": <other>,               ## 失敗
 ```
 
-Get subnet-ID and SecurityGroup.
+Get subnet-ID.
 
 ```Bash
 aws cloudformation describe-stacks --stack-name <stack name> | jq -r ".Stacks[0].Outputs"
 [
-  {
-    "Description": "Security group for the cluster control plane communication with worker nodes",
-    "OutputKey": "SecurityGroups",
-    "OutputValue": "sg-123456ab"
-  },
-  {
-    "Description": "The VPC Id",
-    "OutputKey": "VpcId",
-    "OutputValue": "vpc-111111f6"
-  },
-  {
-    "Description": "Public subnet in the VPC",
-    "OutputKey": "PublicSubnetId",
-    "OutputValue": "subnet-abcdef12"
-  },
+...
   {
     "Description": "Private subnet in the VPC",
     "OutputKey": "PrivateSubnetId",
