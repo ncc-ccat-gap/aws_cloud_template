@@ -6,12 +6,23 @@
 
 ## 2. How to use
 
-Dependent packages are installed automatically.
+Set up.
+
+```Bash
+git clone https://github.com/ncc-ccat-gap/aws_cloud_template.git
+cd aws_cloud_template
+
+aws s3 mb <your bucket>
+aws s3 cp ./genomon-vpc.yaml s3://<your bucket>
+```
 
 Create AWS Virtual Private Cloud (VPC).
 
-```
-aws create-stack --stack-name <value> --template-url <value>
+```Bash
+aws cloudformation create-stack --stack-name <stack name> --template-url https://s3-<region>.amazonaws.com/<your bucket>/genomon-vpc.yaml
+
+## for example,
+aws cloudformation create-stack --stack-name genomon-test --template-url https://s3-ap-southeast-1.amazonaws.com/ecsub-singapore/genomon-vpc.yaml
 
 --stack-name (string)
    The  name that is associated with the stack. The name must be unique
@@ -32,10 +43,48 @@ aws create-stack --stack-name <value> --template-url <value>
    plate-url parameter, but not both.
 ```
 
+Wait...
+
+```Bash
+aws cloudformation describe-stacks --stack-name <stack name> | grep StackStatus
+
+            "StackStatus": "CREATE_IN_PROGRESS",  ## 途中
+            "StackStatus": "CREATE_COMPLETE",     ## 成功
+            "StackStatus": <other>,               ## 失敗
+```
+
+Get subnet-ID and SecurityGroup.
+
+```Bash
+aws cloudformation describe-stacks --stack-name <stack name> | jq -r ".Stacks[0].Outputs"
+[
+  {
+    "Description": "Security group for the cluster control plane communication with worker nodes",
+    "OutputKey": "SecurityGroups",
+    "OutputValue": "sg-123456ab"
+  },
+  {
+    "Description": "The VPC Id",
+    "OutputKey": "VpcId",
+    "OutputValue": "vpc-111111f6"
+  },
+  {
+    "Description": "Public subnet in the VPC",
+    "OutputKey": "PublicSubnetId",
+    "OutputValue": "subnet-abcdef12"
+  },
+  {
+    "Description": "Private subnet in the VPC",
+    "OutputKey": "PrivateSubnetId",
+    "OutputValue": "subnet-ghijkl34"
+  }
+]
+```
+
 Delete VPC.
 
-```
-aws delete-stack --stack-name <value>
+```Bash
+aws cloudformation delete-stack --stack-name <value>
 ```
 
 
