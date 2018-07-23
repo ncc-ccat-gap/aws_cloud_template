@@ -1,0 +1,189 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Genomon VPC enable SSH access'
+
+Parameters:
+
+  VpcBlock:
+    Type: String
+    Default: 10.0.0.0/16
+    Description: The CIDR range for the VPC. This should be a valid private (RFC 1918) CIDR range.
+
+  Subnet01Block:
+    Type: String
+    Default: 10.0.0.0/18
+    Description: private-subnet
+
+  Subnet02Block:
+    Type: String
+    Default: 10.0.64.0/24
+    Description: public-subnet
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      -
+        Label:
+          default: "Worker Network Configuration"
+        Parameters:
+          - VpcBlock
+          - Subnet01Block
+          - Subnet02Block
+
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock:  !Ref VpcBlock
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+      - Key: Name
+        Value: !Sub '${AWS::StackName}-VPC'
+
+  InternetGateway:
+    Type: "AWS::EC2::InternetGateway"
+
+  VPCGatewayAttachment:
+    Type: "AWS::EC2::VPCGatewayAttachment"
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: Public Subnets
+      - Key: Network
+        Value: Public
+
+  Route:
+    DependsOn: VPCGatewayAttachment
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  Subnet01:
+    Type: AWS::EC2::Subnet
+    Metadata:
+      Comment: purivate subnet
+    Properties:
+      AvailabilityZone:
+        Fn::Select:
+        - '0'
+        - Fn::GetAZs:
+            Ref: AWS::Region
+      CidrBlock:
+        Ref: Subnet01Block
+      VpcId:
+        Ref: VPC
+      Tags:
+      - Key: Name
+        Value: !Sub "${AWS::StackName}-private"
+
+  Subnet02:
+    Type: AWS::EC2::Subnet
+    Metadata:
+      Comment: Subnet 02
+    Properties:
+      AvailabilityZone:
+        Fn::Select:
+        - '1'
+        - Fn::GetAZs:
+            Ref: AWS::Region
+      CidrBlock:
+        Ref: Subnet02Block
+      VpcId:
+        Ref: VPC
+      Tags:
+      - Key: Name
+        Value: !Sub "${AWS::StackName}-public"
+
+  ControlPlaneSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Enable SSH access on the configured port
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 160.190.0.0/16
+          Description: NCC network
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 106.180.8.0/24
+          Description: Wifi network
+      VpcId: !Ref VPC
+
+  EIP01:
+    Type: "AWS::EC2::EIP"
+    Properties:
+      Domain: vpc
+  
+  NatGateway:
+    DependsOn: VPCGatewayAttachment
+    Type: "AWS::EC2::NatGateway"
+    Properties: 
+      AllocationId: 
+        Fn::GetAtt:
+        - EIP01
+        - AllocationId
+      SubnetId:
+        !Ref Subnet02
+      Tags: 
+      - Key: Name
+        Value: !Sub "${AWS::StackName}-NatGateway"
+
+  RouteTablePrivate:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: Private Subnets
+      - Key: Network
+        Value: Private
+        
+  RoutePrivate:
+    DependsOn: VPCGatewayAttachment
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref RouteTablePrivate
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway
+      
+  Subnet01RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Subnet01
+      RouteTableId: !Ref RouteTablePrivate
+
+  Subnet02RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Subnet02
+      RouteTableId: !Ref RouteTable
+      
+Outputs:
+
+  PrivateSubnetId:
+    Description: Private subnet in the VPC
+    Value: !Ref Subnet01
+  
+  PublicSubnetId:
+    Description: Public subnet in the VPC
+    Value: !Ref Subnet02
+    
+  SecurityGroups:
+    Description: Security group for the cluster control plane communication with worker nodes
+    Value: !Join [ ",", [ !Ref ControlPlaneSecurityGroup ] ]
+
+  VpcId:
+    Description: The VPC Id
+    Value: !Ref VPC
