@@ -96,4 +96,5 @@ aws cloudformation delete-stack --stack-name <value>
 
 ![document](./img/s3-vpn.PNG)
 
-※cloudFormationではS3のGatewayエンドポイントが作成できなさそうなので、手動で作成して、gwにアタッチすること
+※1 cloudFormationではS3のGatewayエンドポイントが作成できなさそうなので、手動で作成して、gwにアタッチすること
+※2 SoftEtherの設定は [./doc/SoftEtherのインストールと設定.md](./doc/SoftEtherのインストールと設定.md) を参考にして手動で行うこと
